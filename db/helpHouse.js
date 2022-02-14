@@ -15,19 +15,34 @@ class HelpHouse {
 		return await DB.Select(sql)
 	}
 
-	static post_user =  async (email, username, userphone, hash_password, price, longitude, latitude) => {
-		const sql = `INSERT INTO users (email, username, userphone, hash_password, price, longitude, latitude) 
+	static get_all_prestadores =  async () => {
+		const sql = `select * from users WHERE user_type=1`;
+		return await DB.Select(sql)
+	}
+
+	static post_user =  async (email, username, userphone, hash_password, price, longitude, latitude, user_type) => {
+		const sql = `INSERT INTO users (email, username, userphone, hash_password, price, longitude, latitude, user_type) 
 		VALUES ("${email}", "${username}", "${userphone}" , "${hash_password}", "${price}", 
-			"${longitude}", "${latitude}");`		
+			"${longitude}", "${latitude}", ${user_type});`		
 
 		const results = await DB.Insert(sql);
 
 		return results
 	}
 
+
 	static edit_user =  async (id, password) => {
 		
 		const sql = `UPDATE users SET hash_password="${password}"
+		 WHERE id=${id};`
+
+		const results = await DB.Update(sql)
+		return results
+	}
+
+	static edit_user_contact_price =  async (id, userphone, price) => {
+		
+		const sql = `UPDATE users SET userphone="${userphone}", price='${price}'
 		 WHERE id=${id};`
 
 		const results = await DB.Update(sql)
@@ -47,7 +62,7 @@ class HelpHouse {
 	static get_services =  async (id = null) => {
 		let sql;
 		if(id !== null){
-			sql = `select * from service WHERE id=${id}`;
+			sql = `select * from service WHERE id_prestador=${id} or id_requsitador=${id} and status=1`;
 		}
 		else{
 			sql = `select * from service`;
@@ -78,6 +93,27 @@ class HelpHouse {
 		return results
 	}
 
+	static add_category_user = async (id_user, id_category) =>{
+		const sql = `INSERT INTO user_service_category (id_user, id_category) VALUES ('${id_user}', '${id_category}');`;
+
+		const results = await DB.Insert(sql);
+
+		return results
+	}
+
+	static get_user_categorys =  async (id_category = null) => {
+		let sql;
+		if(id_category !== null){
+			sql = `SELECT x.username, x.email, x.userphone, x.price, x.id, y.id_user, y.id_category
+			FROM users x, user_service_category y WHERE y.id_category=${id_category} and x.id=y.id_user;`;
+		}
+		else{
+			sql = `select * from user_service_category`;
+		}
+		
+		return await DB.Select(sql)
+	}
+
 	static post_service_category =  async (name, description) => {
 		const sql = `INSERT INTO _categoria_service (name, description) 
 		VALUES ("${name}", "${description}");`		
@@ -91,6 +127,7 @@ class HelpHouse {
 		const sql = `UPDATE service
 		SET status = ${state} 
 		WHERE id=${id};`
+		console.log(id, state)
 
 		const results = await DB.Insert(sql);
 

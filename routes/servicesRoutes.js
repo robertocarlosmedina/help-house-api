@@ -53,25 +53,30 @@ router.get('/category', express.json(), async (req, res) => {
 	)
 });
 
-router.get('/single_service', express.json(), async (req, res) => {
+router.post('/single_service', express.json(), async (req, res) => {
 
 	const { id } = req.body;
-	const service = await HelpHouse.get_services(id)
+	const services = await HelpHouse.get_services(id)
 
-	if (service.length < 1){
-		return res.sendStatus(404)
-	}
-	if (!service) return res.sendStatus(404) // internal error
-	return res.json({
-        description: service[0].description,	
-		data: service[0].data,
-		horas: service[0].horas,
-		id_prestador: service[0].id_prestador,
-		id_requsitador: service[0].id_requsitador,
-		id_categoria: service[0].id_categoria,
-		status: service[0].status
-    })
+	if (!services) return res.sendStatus(404) // internal error
+
+	return res.json(
+		{
+			servicos: 
+				services.map((service) => ({
+				id: service.id,
+        		description: service.description,	
+				data: service.data,
+				horas: service.horas,
+				id_prestador: service.id_prestador,
+				id_requsitador: service.id_requsitador,
+				id_categoria: service.id_categoria,
+				status: service.status
+			}))
+		}
+	) 
 });
+
 
 router.get('/single_category', express.json(), async (req, res) => {
 	const { id } = req.body;
@@ -114,22 +119,25 @@ router.post('/create/category', express.json(), async (req, res) => {
 
 router.post('/change_state', express.json(), async (req, res) => {
 	const { id, status } = req.body;
-	const service = await HelpHouse.update_service_state(id, status)
-	const update_service = await HelpHouse.get_services(id)
+	console.log(id, status)
+	const service = await HelpHouse.update_service_state(id, status==1 ? true: false)
 
 	if (!service) return res.sendStatus(500) // internal error
+	return res.sendStatus(200);
+});
+
+router.post('/add_user_category', express.json(), async (req, res) => {
+	const { id_user, id_category } = req.body;
+	const user_category = await HelpHouse.add_category_user(id_user, id_category)
+	const users_categorys = await HelpHouse.get_user_categorys()
+	const last_category = users_categorys[users_categorys.length-1]
+
+	if (!user_category) return res.sendStatus(500) // internal error
 	return res.json(
-	    {
-			description: update_service[0].description,	
-			data: update_service[0].data,
-			horas: update_service[0].horas,
-			id_prestador: update_service[0].id_prestador,
-			id_requsitador: update_service[0].id_requsitador,
-			id_categoria: update_service[0].id_categoria,
-			status: update_service[0].status
-		}
+	    last_category
 	)
 });
+
 
 router.post('/delete', express.json(), async (req, res) => {
 	const { id } = res.body;

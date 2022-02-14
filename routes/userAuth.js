@@ -7,14 +7,7 @@ router.use(express.json());
 const HelpHouse = require('../db/helpHouse')
 
 
-/**
- * Arrow Function that filter all routes and retunr the route name
- *  @param username
- *  @param user_email
- * 	@param all_users
- *  @return The route name
- * */ 
- const checkIfUserAlreadyExist = (username, user_email, all_users) => {
+const checkIfUserAlreadyExist = (username, user_email, all_users) => {
     const related_user = all_users.filter( (user) =>{
         return user.name === username || user.email === user_email
     })
@@ -22,6 +15,21 @@ const HelpHouse = require('../db/helpHouse')
 		return true;
 	}
     return false
+}
+
+/**
+ * Arrow Function that filter all routes and retunr the route name
+ *  @param username
+ *  @param user_email
+ * 	@param all_users
+ *  @return The route name
+ * */ 
+ const getCategoryWithID = (id, all_category) => {
+    const related_category = all_category.filter( (category) =>{
+        return category.id = id
+    })
+	
+	return related_category[0].name
 }
 
 router.get('/', express.json(), async (req, res) => {
@@ -79,7 +87,7 @@ router.get('/get_user_info', express.json(), async (req, res) => {
 });
 
 router.post('/create', express.json(), async (req, res) => {
-	const { email, username, userphone, hash_password, price, longitude, latitude } = req.body;
+	const { email, username, userphone, hash_password, price, longitude, latitude, userType } = req.body;
 	const all_users = await HelpHouse.get_users()
 	const userAlredyExit = checkIfUserAlreadyExist(username, email, all_users)
 
@@ -87,7 +95,7 @@ router.post('/create', express.json(), async (req, res) => {
 		return res.sendStatus(401)
 	}
 
-	const new_user = await HelpHouse.post_user(email, username, userphone, hash_password, price, longitude, latitude);
+	const new_user = await HelpHouse.post_user(email, username, userphone, hash_password, price, longitude, latitude, userType);
 	const updated_all_users = await HelpHouse.get_users()
 
 	const last_user = updated_all_users[updated_all_users.length-1]
@@ -105,17 +113,45 @@ router.post('/auth', express.json(), async (req, res) => {
 	if(!all_users) return res.sendStatus(500);
 
 
-	const authenticated_user = all_users.filter( (user) =>{
-        return (user.username === email_or_username || user.email === email_or_username)
-		&& user.hash_password === password
+	const authenticated_user = all_users.filter((user) =>{
+        return (user.username == email_or_username || user.email == email_or_username) && user.hash_password == password
     })
-
 	if (authenticated_user.length > 0){
 		return res.json(authenticated_user[0])
 	}
 	else{
 		return res.sendStatus(401);
 	}
+});
+
+router.post('/get_all_related_prestador', express.json(), async (req, res) => {
+	const { id_category } = req.body;
+	const related_user_category = await HelpHouse.get_user_categorys(id_category);
+
+	if(!related_user_category) return res.sendStatus(500);
+
+	return res.json(
+	    {
+			prestadores: 
+				related_user_category.map((user) => ({
+            	username: user.username,
+				email: user.email,
+				userphone: user.userphone,
+				price: user.price,
+				id: user.id
+			}))
+		}
+	) 
+});
+
+router.post('/contact_price_info', express.json(), async (req, res) => {
+
+	const { id, userphone, price } = req.body;
+	const all_users = await HelpHouse.edit_user_contact_price(id, userphone, price);
+
+	if(!all_users) return res.sendStatus(500);
+
+	res.sendStatus(200);
 });
 
 router.put('/edit', express.json(), async (req, res) => {
